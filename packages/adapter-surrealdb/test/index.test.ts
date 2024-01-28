@@ -3,15 +3,21 @@ import { runBasicTests } from "utils/adapter"
 
 import { config } from "./common"
 
+const connectionString = "http://0.0.0.0:8000"
+const namespace = "test"
+const database = "test"
+const username = "test"
+const password = "test"
+
 const clientPromise = new Promise<Surreal>(async (resolve, reject) => {
   const db = new Surreal()
   try {
-    await db.connect("http://0.0.0.0:8000/rpc", {
-      namespace: "test",
-      database: "test",
+    await db.connect(`${connectionString}/rpc`, {
+      namespace,
+      database,
       auth: {
-        username: "test",
-        password: "test",
+        username,
+        password,
       },
     })
     resolve(db)
@@ -22,24 +28,32 @@ const clientPromise = new Promise<Surreal>(async (resolve, reject) => {
 
 runBasicTests(config(clientPromise))
 
-// const clientPromiseRest = new Promise<ExperimentalSurrealHTTP<typeof fetch>>(
-//   async (resolve, reject) => {
-//     try {
-//       const db = new ExperimentalSurrealHTTP("http://0.0.0.0:8000", {
-//         fetch,
-//         auth: {
-//           user: "test",
-//           pass: "test",
-//         },
-//         ns: "test",
-//         db: "test",
-//       })
-//       resolve(db)
-//     } catch (e) {
-//       reject(e)
-//     }
-//   }
-// )
+const clientPromiseRest = new Promise<ExperimentalSurrealHTTP<typeof fetch>>(
+  async (resolve, reject) => {
+    try {
+      const db = new ExperimentalSurrealHTTP({
+        fetch,
+      })
+
+      await db
+        .connect(`${connectionString}`, {
+          namespace,
+          database,
+          auth: {
+            username,
+            password,
+          },
+        })
+        .catch((e) => {
+          // The connection failed
+          console.error("Error: signin failed", e)
+        })
+      resolve(db)
+    } catch (e) {
+      reject(e)
+    }
+  }
+)
 
 // TODO: Revisit and fix this test - currently updateUser and deleteUser are failing.
-// runBasicTests(config(clientPromiseRest))
+runBasicTests(config(clientPromiseRest))

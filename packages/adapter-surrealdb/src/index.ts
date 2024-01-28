@@ -276,9 +276,15 @@ export function SurrealDBAdapter<T>(
         emailVerified: user.emailVerified?.toISOString(),
         id: undefined,
       }
-      let updatedUser = await surreal.merge<UserDoc, Omit<UserDoc, "id">>(
-        `user:${toSurrealId(user.id)}`,
-        doc
+      let updatedUser = await surreal.query<UserDoc[]>(
+        /* surql */ `
+          UPDATE ONLY $user
+          MERGE $doc
+          `,
+        {
+          user: `user:${toSurrealId(user.id)}`,
+          doc,
+        }
       )
       if (updatedUser.length) {
         return docToUser(updatedUser[0])
@@ -323,7 +329,14 @@ export function SurrealDBAdapter<T>(
       } catch (e) {}
 
       // delete user
-      await surreal.delete(`user:${surrealId}`)
+      await surreal.query<UserDoc[]>(
+        /* surql */ `
+          DELETE $user
+          `,
+        {
+          user: `user:${surrealId}`,
+        }
+      )
 
       // TODO: put all 3 deletes inside a Promise all
     },
